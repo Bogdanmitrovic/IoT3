@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.33.2",
+    "nats": "^2.27.0"
+  }
+}

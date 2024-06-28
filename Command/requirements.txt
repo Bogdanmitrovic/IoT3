@@ -1,0 +1,4 @@
+Flask
+flask-socketio
+flask-mqtt
+Flask-CORS

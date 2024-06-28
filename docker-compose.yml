@@ -1,0 +1,105 @@
+version: '3'
+services:
+  filter:
+    image: filter
+    container_name: filter
+    depends_on:
+      - mosquitto
+      - nats
+      - sensor
+    networks:
+      - net1
+  sensor:
+    image: sensor
+    container_name: sensor
+    depends_on:
+      - mosquitto
+    networks:
+      - net1
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./Mosquitto/config:/mosquitto/config
+      - ./Mosquitto/data:/mosquitto/data
+      - ./Mosquitto/log:/mosquitto/log
+    networks:
+      - net1
+  nats:
+    image: nats
+    container_name: nats
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+    networks:
+      - net1
+  ekuiper:
+    image: lfedge/ekuiper:1.13.5
+    ports:
+      - "9081:9081"
+      - "127.0.0.1:20498:20498"
+    container_name: ekuiper
+    hostname: ekuiper
+    restart: unless-stopped
+    networks:
+      - net1
+    user: root
+    depends_on:
+      - mosquitto
+    volumes:
+      - ./eKuiper/data:/kuiper/data
+      - ./eKuiper/log:/kuiper/log
+    environment:
+      MQTT_SOURCE__DEFAULT__SERVER: "mosquitto:1883"
+      KUIPER__BASIC__CONSOLELOG: "true"
+      KUIPER__BASIC__IGNORECASE: "false"
+  ekuiper-manager:
+    image: emqx/ekuiper-manager:1.9.5-plus-ief
+    container_name: ekuiper-manager
+    networks:
+      - net1
+    ports:
+      - "9082:9082"
+    environment:
+      DEFAULT_EKUIPER_ENDPOINT: "http://ekuiper:9081"
+  dashboard:
+    image: dashboard
+    environment:
+      INFLUXDB_TOKEN: "_xYEHJjDbr-0CVqHRGlecu27IJMFPqPRT8SXmmVOPeNIN8O77-_2JF1Gc_QEX95wenh2JXkJcIxj4RY_sz9EgQ=="
+    depends_on:
+      - nats
+    networks:
+      - net1
+  influxdb:
+    image: influxdb
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - net1
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    networks:
+      - net1
+    ports:
+      - "3000:3000"
+  command:
+    image: command
+    networks:
+      - net1
+    ports:
+      - "5001:5001"
+
+networks:
+  net1:
+    driver: bridge
+
+volumes:
+  influxdb-data:
+    driver: local
